@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ListTodo, RefreshCw } from "lucide-react";
+import { useCloudData } from "@/hooks/useCloudData";
 
-const PROGRESS_KEY = "gate2027-progress-v1";
 const WEEK_KEY = "gate2027-weekly-v1";
 const TARGET = 10;
 
@@ -24,22 +24,11 @@ function getMonday(d = new Date()) {
 type StoredWeek = { weekStart: string; topicIds: string[] };
 
 export default function WeeklyChecklist() {
+  const { progress: done, toggleTopic } = useCloudData();
   const [weekly, setWeekly] = useState<StoredWeek | null>(null);
-  const [done, setDone] = useState<Record<string, boolean>>({});
   const weekStart = getMonday();
 
-  // Load progress map
-  const loadDone = () => {
-    try {
-      const raw = localStorage.getItem(PROGRESS_KEY);
-      setDone(raw ? JSON.parse(raw) : {});
-    } catch {
-      setDone({});
-    }
-  };
-
   useEffect(() => {
-    loadDone();
     try {
       const raw = localStorage.getItem(WEEK_KEY);
       if (raw) {
@@ -66,7 +55,7 @@ export default function WeeklyChecklist() {
     return arr;
   }, [done]);
 
-  const generate = (silent = false) => {
+  const generate = (_silent = false) => {
     // Pick top TARGET unfinished high-priority topics, prefer subject diversity
     const seen = new Map<string, number>();
     const picked: string[] = [];
@@ -88,14 +77,9 @@ export default function WeeklyChecklist() {
     const w = { weekStart, topicIds: picked };
     setWeekly(w);
     localStorage.setItem(WEEK_KEY, JSON.stringify(w));
-    if (!silent) loadDone();
   };
 
-  const toggle = (id: string) => {
-    const next = { ...done, [id]: !done[id] };
-    setDone(next);
-    localStorage.setItem(PROGRESS_KEY, JSON.stringify(next));
-  };
+  const toggle = (id: string) => { void toggleTopic(id); };
 
   const items = (weekly?.topicIds ?? []).map((id) => {
     const [subjectName, topic] = id.split("::");
