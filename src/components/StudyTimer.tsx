@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Timer, Play, Pause, Square, Plus, Flame, TrendingUp, CalendarDays } from "lucide-react";
+import { Timer, Play, Pause, Square, Plus, Flame, TrendingUp, CalendarDays, BookOpen } from "lucide-react";
 import { useCloudData } from "@/hooks/useCloudData";
 
 export type StudyEntry = {
@@ -16,11 +16,6 @@ export type StudyEntry = {
 };
 
 const todayStr = () => new Date().toISOString().slice(0, 10);
-const dateNDaysAgo = (n: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
-};
 
 export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
   const { addStudyEntry, studyLog } = useCloudData();
@@ -81,6 +76,12 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
   const todayEntries = studyLog.filter((e) => e.date === today);
   const todayTotal = todayEntries.reduce((s, e) => s + e.minutes, 0);
 
+  // Total minutes spent on the currently-selected topic (all time)
+  const topicTotal = useMemo(
+    () => studyLog.filter((e) => e.subject === subject && e.topic === topic).reduce((s, e) => s + e.minutes, 0),
+    [studyLog, subject, topic],
+  );
+
   return (
     <Card className="border-border/60 bg-gradient-card p-6 shadow-elegant">
       <div className="mb-4 flex items-center gap-2">
@@ -137,6 +138,9 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
         <Badge variant="outline" className="border-secondary/40 text-secondary">
           <CalendarDays className="mr-1 h-3 w-3" /> Today: {todayTotal} min
         </Badge>
+        <Badge variant="outline" className="border-accent/40 text-accent">
+          <BookOpen className="mr-1 h-3 w-3" /> This topic (all-time): {topicTotal} min
+        </Badge>
         {todayEntries.length > 0 && (
           <span className="text-xs text-muted-foreground">{todayEntries.length} session{todayEntries.length > 1 ? "s" : ""} logged</span>
         )}
@@ -148,95 +152,97 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
 /* ---------- Stats & Streaks ---------- */
 
 export function StudyStats({ refreshKey = 0 }: { refreshKey?: number }) {
-  const { studyLog: log } = useCloudData();
+  const { studyLog: log, progressEntries } = useCloudData();
   void refreshKey;
 
-  const byDate = useMemo(() => {
+  // Topic-completion based streaks (per current calendar month)
+  const topicsByDate = useMemo(() => {
     const m = new Map<string, number>();
-    log.forEach((e) => m.set(e.date, (m.get(e.date) ?? 0) + e.minutes));
+    progressEntries.forEach((e) => m.set(e.date, (m.get(e.date) ?? 0) + 1));
     return m;
-  }, [log]);
+  }, [progressEntries]);
 
-  // Streak: consecutive days up to today with >0 minutes
-  const currentStreak = (() => {
-    let n = 0;
-    for (let i = 0; i < 365; i++) {
-      const d = dateNDaysAgo(i);
-      if ((byDate.get(d) ?? 0) > 0) n++;
-      else break;
-    }
-    return n;
-  })();
+  const now = new Date();
+  const y = now.getFullYear();
+  const mo = now.getMonth();
+  const monthLabel = now.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+  const daysInMonth = new Date(y, mo + 1, 0).getDate();
+  const todayDay = now.getDate();
+  const fmtD = (day: number) => `${y}-${String(mo + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 
-  const longestStreak = (() => {
-    const dates = [...byDate.keys()].sort();
-    let best = 0, cur = 0, prev: string | null = null;
-    for (const d of dates) {
-      if (prev) {
-        const diff = (new Date(d).getTime() - new Date(prev).getTime()) / 86400000;
-        cur = diff === 1 ? cur + 1 : 1;
-      } else cur = 1;
-      best = Math.max(best, cur);
-      prev = d;
-    }
-    return best;
-  })();
+  // Current streak: consecutive days ending today (within this month) with >=1 topic completed
+  let currentStreak = 0;
+  for (let d = todayDay; d >= 1; d--) {
+    if ((topicsByDate.get(fmtD(d)) ?? 0) > 0) currentStreak++;
+    else break;
+  }
+  // Longest streak in this month
+  let longestStreak = 0, cur = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    if ((topicsByDate.get(fmtD(d)) ?? 0) > 0) { cur++; longestStreak = Math.max(longestStreak, cur); }
+    else cur = 0;
+  }
 
-  // Last 7 days
-  const last7 = Array.from({ length: 7 }, (_, i) => {
-    const d = dateNDaysAgo(6 - i);
-    return { date: d, minutes: byDate.get(d) ?? 0 };
-  });
-  const week7Total = last7.reduce((s, x) => s + x.minutes, 0);
-  const activeDays = last7.filter((x) => x.minutes > 0).length;
-  const consistency = Math.round((activeDays / 7) * 100);
-  const maxMin = Math.max(60, ...last7.map((x) => x.minutes));
+  // Month progress so far
+  const activeDays = Array.from({ length: todayDay }, (_, i) => (topicsByDate.get(fmtD(i + 1)) ?? 0) > 0).filter(Boolean).length;
+  const consistency = todayDay ? Math.round((activeDays / todayDay) * 100) : 0;
+  const monthTopics = Array.from({ length: daysInMonth }, (_, i) => topicsByDate.get(fmtD(i + 1)) ?? 0);
+  const totalMonthTopics = monthTopics.reduce((s, x) => s + x, 0);
+  const maxCount = Math.max(1, ...monthTopics);
 
-  // Per-subject minutes (last 30 days)
-  const last30 = new Set(Array.from({ length: 30 }, (_, i) => dateNDaysAgo(i)));
+  // Per-subject minutes — ALL TIME
   const perSubject = new Map<string, number>();
-  log.filter((e) => last30.has(e.date)).forEach((e) => {
-    perSubject.set(e.subject, (perSubject.get(e.subject) ?? 0) + e.minutes);
-  });
+  log.forEach((e) => perSubject.set(e.subject, (perSubject.get(e.subject) ?? 0) + e.minutes));
   const subjectStats = [...perSubject.entries()].sort((a, b) => b[1] - a[1]);
+
+  // Per-topic minutes — ALL TIME (top 12)
+  const perTopic = new Map<string, number>();
+  log.forEach((e) => {
+    const k = `${e.subject}::${e.topic}`;
+    perTopic.set(k, (perTopic.get(k) ?? 0) + e.minutes);
+  });
+  const topicStats = [...perTopic.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <Card className="border-border/60 bg-gradient-card p-5 shadow-soft">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <Flame className="h-4 w-4 text-gold" /> Current Streak
+          <Flame className="h-4 w-4 text-gold" /> Current Streak ({monthLabel})
         </div>
         <div className="mt-2 font-display text-4xl font-semibold text-primary">{currentStreak} <span className="text-base font-normal text-muted-foreground">days</span></div>
-        <div className="mt-1 text-xs text-muted-foreground">Longest: {longestStreak} days</div>
+        <div className="mt-1 text-xs text-muted-foreground">Longest this month: {longestStreak} days</div>
       </Card>
 
       <Card className="border-border/60 bg-gradient-card p-5 shadow-soft">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-          <TrendingUp className="h-4 w-4 text-secondary" /> 7-Day Consistency
+          <TrendingUp className="h-4 w-4 text-secondary" /> Month Consistency
         </div>
         <div className="mt-2 font-display text-4xl font-semibold text-primary">{consistency}%</div>
-        <div className="mt-1 text-xs text-muted-foreground">{activeDays}/7 active days · {week7Total} min</div>
+        <div className="mt-1 text-xs text-muted-foreground">{activeDays}/{todayDay} active days · {totalMonthTopics} topics done</div>
       </Card>
 
       <Card className="border-border/60 bg-gradient-card p-5 shadow-soft">
-        <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Last 7 days</div>
-        <div className="flex h-20 items-end gap-1.5">
-          {last7.map((d) => (
-            <div key={d.date} className="flex flex-1 flex-col items-center gap-1">
-              <div
-                className="w-full rounded-sm bg-accent/70 transition-all"
-                style={{ height: `${(d.minutes / maxMin) * 100}%`, minHeight: d.minutes > 0 ? "4px" : "1px" }}
-                title={`${d.date}: ${d.minutes} min`}
-              />
-              <div className="text-[9px] text-muted-foreground">{new Date(d.date).toLocaleDateString(undefined, { weekday: "narrow" })}</div>
-            </div>
-          ))}
+        <div className="mb-2 text-xs uppercase tracking-wider text-muted-foreground">Topics completed — {monthLabel}</div>
+        <div className="flex h-20 items-end gap-[2px]">
+          {monthTopics.map((c, i) => {
+            const day = i + 1;
+            const isToday = day === todayDay;
+            return (
+              <div key={day} className="flex flex-1 flex-col items-center gap-1">
+                <div
+                  className={`w-full rounded-sm transition-all ${isToday ? "bg-gold" : "bg-accent/70"}`}
+                  style={{ height: `${(c / maxCount) * 100}%`, minHeight: c > 0 ? "3px" : "1px" }}
+                  title={`${fmtD(day)}: ${c} topic${c === 1 ? "" : "s"}`}
+                />
+              </div>
+            );
+          })}
         </div>
       </Card>
 
       {subjectStats.length > 0 && (
         <Card className="border-border/60 bg-gradient-card p-5 shadow-soft md:col-span-3">
-          <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">Minutes per subject — last 30 days</div>
+          <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">Minutes per subject — all time</div>
           <div className="space-y-2">
             {subjectStats.map(([name, mins]) => {
               const max = subjectStats[0][1];
@@ -245,6 +251,29 @@ export function StudyStats({ refreshKey = 0 }: { refreshKey?: number }) {
                   <div className="w-44 shrink-0 truncate text-sm text-foreground">{name}</div>
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <div className="h-full bg-secondary" style={{ width: `${(mins / max) * 100}%` }} />
+                  </div>
+                  <div className="w-16 text-right text-xs tabular-nums text-muted-foreground">{mins} min</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {topicStats.length > 0 && (
+        <Card className="border-border/60 bg-gradient-card p-5 shadow-soft md:col-span-3">
+          <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">Minutes per topic — all time (top 12)</div>
+          <div className="space-y-2">
+            {topicStats.map(([key, mins]) => {
+              const [subj, t] = key.split("::");
+              const max = topicStats[0][1];
+              return (
+                <div key={key} className="flex items-center gap-3">
+                  <div className="w-64 shrink-0 truncate text-sm text-foreground" title={`${subj} · ${t}`}>
+                    <span className="text-muted-foreground">{subj} · </span>{t}
+                  </div>
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                    <div className="h-full bg-accent" style={{ width: `${(mins / max) * 100}%` }} />
                   </div>
                   <div className="w-16 text-right text-xs tabular-nums text-muted-foreground">{mins} min</div>
                 </div>
