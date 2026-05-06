@@ -221,11 +221,11 @@ export const subjects: Subject[] = [
 ];
 
 export const monthlyPlan = [
-  { phase: "Phase 1 — Foundation", months: "May 2026 – Aug 2026", duration: "4 months", focus: "Engg Math, Discrete Math, Digital Logic, C Programming, Data Structures", goal: "Build core. Cover NPTEL/standard textbooks. Daily 5–6 hrs.", color: "accent" },
-  { phase: "Phase 2 — Core CS", months: "Sep 2026 – Nov 2026", duration: "3 months", focus: "Algorithms, OS, DBMS, COA, TOC", goal: "High-weightage subjects. Solve 30+ PYQs per subject. Daily 6–7 hrs.", color: "secondary" },
-  { phase: "Phase 3 — Closing", months: "Dec 2026", duration: "1 month", focus: "Computer Networks, Compiler Design, General Aptitude", goal: "Finish syllabus. Start full-length mocks weekly.", color: "primary" },
-  { phase: "Phase 4 — Revision", months: "Jan 2027", duration: "3 weeks", focus: "Full revision + 15 GATE PYQ papers + 10 mock tests", goal: "Aim 75+ in mocks. Identify & patch weak areas.", color: "gold" },
-  { phase: "Phase 5 — Peak", months: "Last 10 days", duration: "10 days", focus: "Formula sheets, short notes, mental rest", goal: "No new topics. Light revision. Sleep well.", color: "success" },
+  { phase: "Phase 1 — Foundation", months: "May 2026 – Aug 2026", duration: "4 months", focus: "Engg Math, Discrete Math, Digital Logic, C Programming, Data Structures", goal: "Build core. Cover NPTEL/standard textbooks. Daily 5–6 hrs.", color: "accent", subjectShorts: ["Math", "Discrete", "DL", "DS+C"] },
+  { phase: "Phase 2 — Core CS", months: "Sep 2026 – Nov 2026", duration: "3 months", focus: "Algorithms, OS, DBMS, COA, TOC", goal: "High-weightage subjects. Solve 30+ PYQs per subject. Daily 6–7 hrs.", color: "secondary", subjectShorts: ["Algo", "OS", "DBMS", "COA", "TOC"] },
+  { phase: "Phase 3 — Closing", months: "Dec 2026", duration: "1 month", focus: "Computer Networks, Compiler Design, General Aptitude", goal: "Finish syllabus. Start full-length mocks weekly.", color: "primary", subjectShorts: ["CN", "CD", "GA"] },
+  { phase: "Phase 4 — Revision", months: "Jan 2027", duration: "3 weeks", focus: "Full revision + 15 GATE PYQ papers + 10 mock tests", goal: "Aim 75+ in mocks. Identify & patch weak areas.", color: "gold", subjectShorts: [] },
+  { phase: "Phase 5 — Peak", months: "Last 10 days", duration: "10 days", focus: "Formula sheets, short notes, mental rest", goal: "No new topics. Light revision. Sleep well.", color: "success", subjectShorts: [] },
 ];
 
 export const resources = [

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Target, TrendingUp, Calendar, BookOpen, CheckCircle2, AlertCircle, Trophy } from "lucide-react";
+import ProgressTracker from "@/components/ProgressTracker";
 
 const sortedSubjects = [...subjects].sort((a, b) => b.avgMarks - a.avgMarks);
 const totalMarks = sortedSubjects.reduce((s, x) => s + x.avgMarks, 0);
@@ -228,6 +229,9 @@ const Index = () => {
             ))}
           </div>
         </section>
+
+        {/* SECTION 6: PROGRESS TRACKER */}
+        <ProgressTracker />
       </main>
 
       <footer className="border-t border-border bg-primary py-10 text-primary-foreground">
