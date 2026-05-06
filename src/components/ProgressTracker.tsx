@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { subjects, monthlyPlan } from "@/data/gateData";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -7,10 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ListChecks, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const STORAGE_KEY = "gate2027-progress-v1";
-
-type ProgressMap = Record<string, boolean>;
+import { useCloudData } from "@/hooks/useCloudData";
 
 const topicId = (subject: string, topic: string) => `${subject}::${topic}`;
 
@@ -25,23 +22,9 @@ const allTopics = subjects.flatMap((s) =>
 );
 
 export default function ProgressTracker() {
-  const [done, setDone] = useState<ProgressMap>({});
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setDone(JSON.parse(raw));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(done));
-  }, [done]);
-
-  const toggle = (id: string) => setDone((p) => ({ ...p, [id]: !p[id] }));
-  const reset = () => {
-    if (confirm("Reset all progress? This cannot be undone.")) setDone({});
-  };
+  const { progress: done, toggleTopic, resetProgress } = useCloudData();
+  const toggle = (id: string) => { void toggleTopic(id); };
+  const reset = () => { if (confirm("Reset all progress? This cannot be undone.")) void resetProgress(); };
 
   const totalDone = Object.values(done).filter(Boolean).length;
   const totalTopics = allTopics.length;
