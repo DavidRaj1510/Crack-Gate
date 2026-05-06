@@ -8,7 +8,11 @@ import StudyTimer, { StudyStats } from "@/components/StudyTimer";
 import WeeklyChecklist from "@/components/WeeklyChecklist";
 import Countdown from "@/components/Countdown";
 import MonthlyStreaks from "@/components/MonthlyStreaks";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 const sortedSubjects = [...subjects].sort((a, b) => b.avgMarks - a.avgMarks);
 const totalMarks = sortedSubjects.reduce((s, x) => s + x.avgMarks, 0);
@@ -20,9 +24,21 @@ const diffColor = (d: string) =>
 
 const Index = () => {
   const [refreshKey, setRefreshKey] = useState(0);
+  const { user, loading, signOut } = useAuth();
+  const nav = useNavigate();
+  useEffect(() => {
+    if (!loading && !user) nav("/auth", { replace: true });
+  }, [user, loading, nav]);
+  if (loading || !user) return null;
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       <Countdown />
+      <div className="container mx-auto flex items-center justify-end gap-3 px-6 pt-3 text-xs text-muted-foreground">
+        <span className="truncate">Signed in as {user.email}</span>
+        <Button size="sm" variant="ghost" onClick={() => signOut()}>
+          <LogOut className="mr-1 h-3.5 w-3.5" /> Sign out
+        </Button>
+      </div>
       {/* HERO */}
       <header className="relative overflow-hidden bg-gradient-hero text-primary-foreground">
         <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
