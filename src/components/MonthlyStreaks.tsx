@@ -23,14 +23,14 @@ const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number }) {
-  const { studyLog: log } = useCloudData();
+  const { progressEntries } = useCloudData();
   void refreshKey;
 
-  const minutesByDate = useMemo(() => {
+  const topicsByDate = useMemo(() => {
     const m = new Map<string, number>();
-    log.forEach((e) => m.set(e.date, (m.get(e.date) ?? 0) + e.minutes));
+    progressEntries.forEach((e) => m.set(e.date, (m.get(e.date) ?? 0) + 1));
     return m;
-  }, [log]);
+  }, [progressEntries]);
 
   const today = todayStr();
 
@@ -44,7 +44,7 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
           Your Month-by-Month Consistency
         </h2>
         <p className="mt-3 text-base text-muted-foreground md:text-lg">
-          Every day you log study time lights up. Don't break the chain — from May 6, 2026 to Jan 31, 2027.
+          Every day you complete at least one topic lights up. The more topics you finish, the brighter the cell — May 6, 2026 to Jan 31, 2027.
         </p>
       </div>
 
@@ -55,16 +55,16 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
             const d = new Date(mo.y, mo.m, i + 1);
             const ds = fmt(d);
             const inWindow = d >= START && d <= END;
-            const mins = minutesByDate.get(ds) ?? 0;
-            return { date: d, ds, inWindow, mins, isToday: ds === today };
+            const count = topicsByDate.get(ds) ?? 0;
+            return { date: d, ds, inWindow, count, isToday: ds === today };
           });
 
-          // Streak: longest consecutive in-window days with mins > 0
+          // Streak: longest consecutive in-window days with at least 1 topic completed
           let longest = 0, cur = 0;
-          let current = 0; // active streak ending today (only counts if mo contains today or earlier)
+          let current = 0;
           let runningCur = 0;
           days.forEach((d) => {
-            if (d.inWindow && d.mins > 0) {
+            if (d.inWindow && d.count > 0) {
               cur++;
               longest = Math.max(longest, cur);
               runningCur = cur;
@@ -73,12 +73,11 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
               runningCur = 0;
             }
           });
-          // Determine current streak ending today within this month (if today is in this month)
           if (today.startsWith(`${mo.y}-${String(mo.m + 1).padStart(2, "0")}`)) {
             current = runningCur;
           }
 
-          const activeDays = days.filter((d) => d.inWindow && d.mins > 0).length;
+          const activeDays = days.filter((d) => d.inWindow && d.count > 0).length;
           const totalActive = days.filter((d) => d.inWindow).length;
           const pct = totalActive ? Math.round((activeDays / totalActive) * 100) : 0;
 
@@ -104,14 +103,14 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
                 {days.map((d) => {
                   let cls = "bg-muted/40";
                   if (!d.inWindow) cls = "bg-muted/20 opacity-40";
-                  else if (d.mins >= 240) cls = "bg-success";
-                  else if (d.mins >= 120) cls = "bg-success/70";
-                  else if (d.mins >= 60) cls = "bg-success/45";
-                  else if (d.mins > 0) cls = "bg-success/25";
+                  else if (d.count >= 5) cls = "bg-success";
+                  else if (d.count >= 3) cls = "bg-success/70";
+                  else if (d.count === 2) cls = "bg-success/45";
+                  else if (d.count === 1) cls = "bg-success/25";
                   return (
                     <div
                       key={d.ds}
-                      title={`${d.ds}: ${d.mins} min${!d.inWindow ? " (outside prep window)" : ""}`}
+                      title={`${d.ds}: ${d.count} topic${d.count === 1 ? "" : "s"} completed${!d.inWindow ? " (outside prep window)" : ""}`}
                       className={`aspect-square rounded-sm ${cls} ${d.isToday ? "ring-2 ring-gold" : ""}`}
                     />
                   );
@@ -137,7 +136,7 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
         <div className="h-3 w-3 rounded-sm bg-success/45" />
         <div className="h-3 w-3 rounded-sm bg-success/70" />
         <div className="h-3 w-3 rounded-sm bg-success" />
-        <span>More (4h+)</span>
+        <span>More (5+ topics)</span>
       </div>
     </section>
   );
