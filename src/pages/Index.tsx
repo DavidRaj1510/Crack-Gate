@@ -4,6 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Target, TrendingUp, Calendar, BookOpen, CheckCircle2, AlertCircle, Trophy } from "lucide-react";
 import ProgressTracker from "@/components/ProgressTracker";
+import StudyTimer, { StudyStats } from "@/components/StudyTimer";
+import WeeklyChecklist from "@/components/WeeklyChecklist";
+import { useState } from "react";
 
 const sortedSubjects = [...subjects].sort((a, b) => b.avgMarks - a.avgMarks);
 const totalMarks = sortedSubjects.reduce((s, x) => s + x.avgMarks, 0);
@@ -14,6 +17,7 @@ const diffColor = (d: string) =>
   : "bg-danger/15 text-danger border-danger/30";
 
 const Index = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
       {/* HERO */}
@@ -232,6 +236,23 @@ const Index = () => {
 
         {/* SECTION 6: PROGRESS TRACKER */}
         <ProgressTracker />
+
+        {/* SECTION 7: STUDY TIMER + STATS */}
+        <section id="timer" className="mb-24">
+          <SectionHead
+            icon={<Trophy className="h-5 w-5" />}
+            eyebrow="Daily Discipline"
+            title="Study Timer, Streaks & Weekly Focus"
+            desc="Log every study session. Build streaks. Stay locked in on the highest-priority unfinished topics."
+          />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <StudyTimer onLogged={() => setRefreshKey((k) => k + 1)} />
+            <WeeklyChecklist />
+          </div>
+          <div className="mt-6">
+            <StudyStats refreshKey={refreshKey} />
+          </div>
+        </section>
       </main>
 
       <footer className="border-t border-border bg-primary py-10 text-primary-foreground">
