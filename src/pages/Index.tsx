@@ -6,6 +6,8 @@ import { Target, TrendingUp, Calendar, BookOpen, CheckCircle2, AlertCircle, Trop
 import ProgressTracker from "@/components/ProgressTracker";
 import StudyTimer, { StudyStats } from "@/components/StudyTimer";
 import WeeklyChecklist from "@/components/WeeklyChecklist";
+import Countdown from "@/components/Countdown";
+import MonthlyStreaks from "@/components/MonthlyStreaks";
 import { useState } from "react";
 
 const sortedSubjects = [...subjects].sort((a, b) => b.avgMarks - a.avgMarks);
@@ -20,6 +22,7 @@ const Index = () => {
   const [refreshKey, setRefreshKey] = useState(0);
   return (
     <div className="min-h-screen bg-background font-sans text-foreground">
+      <Countdown />
       {/* HERO */}
       <header className="relative overflow-hidden bg-gradient-hero text-primary-foreground">
         <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)", backgroundSize: "32px 32px" }} />
@@ -253,6 +256,9 @@ const Index = () => {
             <StudyStats refreshKey={refreshKey} />
           </div>
         </section>
+
+        {/* SECTION 8: MONTHLY STREAKS */}
+        <MonthlyStreaks refreshKey={refreshKey} />
       </main>
 
       <footer className="border-t border-border bg-primary py-10 text-primary-foreground">
