@@ -1,10 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Flame, CalendarRange } from "lucide-react";
-import type { StudyEntry } from "./StudyTimer";
-
-const LOG_KEY = "gate2027-study-log-v1";
+import { useCloudData } from "@/hooks/useCloudData";
 
 const MONTHS = [
   { y: 2026, m: 4, label: "May 2026" },
@@ -24,18 +22,9 @@ const todayStr = () => new Date().toISOString().slice(0, 10);
 const fmt = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
-function loadLog(): StudyEntry[] {
-  try {
-    const raw = localStorage.getItem(LOG_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number }) {
-  const [log, setLog] = useState<StudyEntry[]>([]);
-  useEffect(() => setLog(loadLog()), [refreshKey]);
+  const { studyLog: log } = useCloudData();
+  void refreshKey;
 
   const minutesByDate = useMemo(() => {
     const m = new Map<string, number>();
