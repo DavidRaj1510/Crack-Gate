@@ -8,35 +8,47 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Academic Navy palette */
+    --background: 220 45% 97%;
+    --foreground: 223 60% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 223 60% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 223 60% 12%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 223 60% 15%;
+    --primary-foreground: 220 45% 97%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 215 50% 28%;
+    --secondary-foreground: 220 45% 97%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 218 30% 92%;
+    --muted-foreground: 218 20% 40%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 211 47% 43%;
+    --accent-foreground: 0 0% 100%;
+
+    --gold: 42 78% 52%;
+    --success: 142 60% 38%;
+    --warning: 32 90% 50%;
+    --danger: 0 70% 50%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 218 25% 86%;
+    --input: 218 25% 86%;
+    --ring: 211 47% 43%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    --gradient-hero: linear-gradient(135deg, hsl(223 60% 12%) 0%, hsl(215 50% 22%) 50%, hsl(211 47% 33%) 100%);
+    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(218 30% 96%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(211 47% 43%), hsl(215 50% 28%));
+    --shadow-elegant: 0 10px 40px -12px hsl(223 60% 15% / 0.18);
+    --shadow-soft: 0 2px 12px -2px hsl(223 60% 15% / 0.08);
 
     --sidebar-background: 0 0% 98%;
 
