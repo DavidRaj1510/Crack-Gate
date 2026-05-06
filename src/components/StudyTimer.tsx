@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Timer, Play, Pause, Square, Plus, Flame, TrendingUp, CalendarDays } from "lucide-react";
-
-const LOG_KEY = "gate2027-study-log-v1";
+import { useCloudData } from "@/hooks/useCloudData";
 
 export type StudyEntry = {
   date: string; // YYYY-MM-DD
@@ -23,32 +22,8 @@ const dateNDaysAgo = (n: number) => {
   return d.toISOString().slice(0, 10);
 };
 
-function loadLog(): StudyEntry[] {
-  try {
-    const raw = localStorage.getItem(LOG_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
-function saveLog(log: StudyEntry[]) {
-  localStorage.setItem(LOG_KEY, JSON.stringify(log));
-}
-
-export function useStudyLog() {
-  const [log, setLog] = useState<StudyEntry[]>([]);
-  useEffect(() => setLog(loadLog()), []);
-  const append = (e: StudyEntry) => {
-    setLog((prev) => {
-      const next = [...prev, e];
-      saveLog(next);
-      return next;
-    });
-  };
-  return { log, append, reload: () => setLog(loadLog()) };
-}
-
 export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
+  const { addStudyEntry, studyLog } = useCloudData();
   const [subject, setSubject] = useState<string>(subjects[0].name);
   const [topic, setTopic] = useState<string>("");
   const [seconds, setSeconds] = useState(0);
@@ -86,9 +61,7 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
       setSeconds(0);
       return;
     }
-    const log = loadLog();
-    log.push({ date: todayStr(), subject, topic, minutes });
-    saveLog(log);
+    void addStudyEntry({ date: todayStr(), subject, topic, minutes });
     setSeconds(0);
     onLogged?.();
   };
@@ -96,9 +69,7 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
   const addManual = () => {
     const m = parseInt(manualMin, 10);
     if (!m || m <= 0) return;
-    const log = loadLog();
-    log.push({ date: todayStr(), subject, topic, minutes: m });
-    saveLog(log);
+    void addStudyEntry({ date: todayStr(), subject, topic, minutes: m });
     setManualMin("");
     onLogged?.();
   };
@@ -106,10 +77,8 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
   const mm = String(Math.floor(seconds / 60)).padStart(2, "0");
   const ss = String(seconds % 60).padStart(2, "0");
 
-  // Today's totals
-  const log = loadLog();
   const today = todayStr();
-  const todayEntries = log.filter((e) => e.date === today);
+  const todayEntries = studyLog.filter((e) => e.date === today);
   const todayTotal = todayEntries.reduce((s, e) => s + e.minutes, 0);
 
   return (
@@ -179,8 +148,8 @@ export default function StudyTimer({ onLogged }: { onLogged?: () => void }) {
 /* ---------- Stats & Streaks ---------- */
 
 export function StudyStats({ refreshKey = 0 }: { refreshKey?: number }) {
-  const [log, setLog] = useState<StudyEntry[]>([]);
-  useEffect(() => setLog(loadLog()), [refreshKey]);
+  const { studyLog: log } = useCloudData();
+  void refreshKey;
 
   const byDate = useMemo(() => {
     const m = new Map<string, number>();
