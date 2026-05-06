@@ -7,6 +7,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import Auth from "./pages/Auth.tsx";
 import { AuthProvider } from "@/hooks/useAuth";
+import { CloudDataProvider } from "@/hooks/useCloudData";
 
 const queryClient = new QueryClient();
 
@@ -17,11 +18,13 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <CloudDataProvider>
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </CloudDataProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
