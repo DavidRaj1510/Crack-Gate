@@ -96,6 +96,7 @@ export default function ProgressTracker() {
       <Tabs defaultValue="subjects" className="w-full">
         <TabsList className="mb-6">
           <TabsTrigger value="subjects">By Subject</TabsTrigger>
+          <TabsTrigger value="priority">By Priority</TabsTrigger>
           <TabsTrigger value="months">By Month / Phase</TabsTrigger>
         </TabsList>
 
@@ -134,6 +135,69 @@ export default function ProgressTracker() {
               </ul>
             </Card>
           ))}
+        </TabsContent>
+
+        {/* Priority view — all high-yield first, then low-yield */}
+        <TabsContent value="priority" className="space-y-6">
+          {(["High", "Low"] as const).map((tier) => {
+            const ordered = [...subjects].sort((a, b) => b.weightagePct - a.weightagePct);
+            const items = ordered.flatMap((s) =>
+              (tier === "High" ? s.highTopics : s.lowTopics).map((t) => ({
+                id: topicId(s.name, t),
+                topic: t,
+                subject: s.name,
+                subjectShort: s.short,
+                weightage: s.weightagePct,
+              })),
+            );
+            const completed = items.filter((i) => done[i.id]).length;
+            const pct = items.length ? Math.round((completed / items.length) * 100) : 0;
+            return (
+              <Card key={tier} className="border-border/60 bg-gradient-card p-5 shadow-soft">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-lg font-semibold text-primary">
+                      {tier === "High" ? "High-Yield Topics — Cover First" : "Low-Yield Topics — Cover After"}
+                    </h3>
+                    <div className="text-xs text-muted-foreground">
+                      {completed}/{items.length} done · sorted by subject weightage
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={tier === "High" ? "border-success/40 text-success" : "border-border/60"}
+                  >
+                    {pct}%
+                  </Badge>
+                </div>
+                <Progress value={pct} className="mb-4 h-2" />
+                <ul className="space-y-2">
+                  {items.map((i) => {
+                    const checked = !!done[i.id];
+                    return (
+                      <li key={i.id} className="flex items-start gap-3">
+                        <Checkbox
+                          id={`p-${i.id}`}
+                          checked={checked}
+                          onCheckedChange={() => toggle(i.id)}
+                          className="mt-0.5"
+                        />
+                        <label
+                          htmlFor={`p-${i.id}`}
+                          className={`flex-1 cursor-pointer text-sm ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}
+                        >
+                          {i.topic}
+                          <span className="ml-2 text-[10px] uppercase text-muted-foreground">
+                            {i.subjectShort} · {i.weightage}%
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </Card>
+            );
+          })}
         </TabsContent>
 
         {/* Month / Phase view */}

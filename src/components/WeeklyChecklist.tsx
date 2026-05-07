@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { subjects, monthlyPlan } from "@/data/gateData";
+import { subjects } from "@/data/gateData";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +11,8 @@ import { useCloudData } from "@/hooks/useCloudData";
 const topicId = (subject: string, topic: string) => `${subject}::${topic}`;
 const PER_WEEK = 14; // 2 topics × 7 days
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+type Item = { id: string; subject: string; subjectShort: string; topic: string; phase: string; priority: "High" | "Low" | "Revision" };
 
 // Plan starts Monday May 4, 2026 (start of Phase 1)
 const PLAN_START = new Date("2026-05-04T00:00:00");
@@ -32,42 +34,51 @@ function fmt(d: Date) {
 // Build the master topic stream, ordered by phase (subjectShorts) so each
 // phase's subjects are covered in their target months.
 function buildPlan() {
-  const subjBy = new Map(subjects.map((s) => [s.short, s]));
-  const stream: { id: string; subject: string; subjectShort: string; topic: string; phase: string }[] = [];
-  const used = new Set<string>();
+  // Order subjects by weightage descending so high-yield subjects come first.
+  const ordered = [...subjects].sort((a, b) => b.weightagePct - a.weightagePct);
+  const stream: Item[] = [];
 
-  const pushSubject = (short: string, phase: string) => {
-    const s = subjBy.get(short);
-    if (!s) return;
-    [...s.highTopics, ...s.lowTopics].forEach((t) => {
-      const id = topicId(s.name, t);
-      if (used.has(id)) return;
-      used.add(id);
-      stream.push({ id, subject: s.name, subjectShort: s.short, topic: t, phase });
+  // Pass 1: every HIGH-yield topic across all subjects (highest weightage first)
+  ordered.forEach((s) => {
+    s.highTopics.forEach((t) => {
+      stream.push({
+        id: topicId(s.name, t),
+        subject: s.name,
+        subjectShort: s.short,
+        topic: t,
+        phase: "High-Yield Pass",
+        priority: "High",
+      });
     });
-  };
-
-  monthlyPlan.forEach((p) => {
-    (p.subjectShorts ?? []).forEach((sh) => pushSubject(sh, p.phase));
   });
-  // Catch any subject not in any phase (e.g. Discrete)
-  subjects.forEach((s) => pushSubject(s.short, "Phase 1 — Foundation"));
+  // Pass 2: every LOW-yield topic across all subjects
+  ordered.forEach((s) => {
+    s.lowTopics.forEach((t) => {
+      stream.push({
+        id: topicId(s.name, t),
+        subject: s.name,
+        subjectShort: s.short,
+        topic: t,
+        phase: "Low-Yield Pass",
+        priority: "Low",
+      });
+    });
+  });
 
-  // Chunk into weeks
   const totalWeeks = Math.max(
     1,
     Math.ceil((PLAN_END.getTime() - PLAN_START.getTime()) / (7 * 86400000)) + 1,
   );
-  const weeks: typeof stream[] = [];
+  const weeks: Item[][] = [];
   for (let w = 0; w < totalWeeks; w++) {
     const start = w * PER_WEEK;
     const slice = stream.slice(start, start + PER_WEEK);
     if (slice.length === 0) {
       // Revision weeks: cycle through high-priority topics
-      const high = subjects.flatMap((s) => s.highTopics.map((t) => ({
-        id: topicId(s.name, t), subject: s.name, subjectShort: s.short, topic: `Revise: ${t}`, phase: "Revision",
+      const high: Item[] = ordered.flatMap((s) => s.highTopics.map((t) => ({
+        id: topicId(s.name, t), subject: s.name, subjectShort: s.short, topic: `Revise: ${t}`, phase: "Revision", priority: "Revision" as const,
       })));
-      const offset = ((w * PER_WEEK) - stream.length) % high.length;
+      const offset = (((w * PER_WEEK) - stream.length) % high.length + high.length) % high.length;
       weeks.push([...high.slice(offset, offset + PER_WEEK), ...high.slice(0, Math.max(0, PER_WEEK - (high.length - offset)))].slice(0, PER_WEEK));
     } else {
       weeks.push(slice);
@@ -105,7 +116,7 @@ export default function WeeklyChecklist() {
   const pct = items.length ? Math.round((completed / items.length) * 100) : 0;
 
   // Split into 7 days × ~2 topics
-  const byDay: typeof items[] = Array.from({ length: 7 }, () => []);
+  const byDay: Item[][] = Array.from({ length: 7 }, () => []);
   items.forEach((it, i) => byDay[i % 7].push(it));
 
   return (
@@ -152,6 +163,17 @@ export default function WeeklyChecklist() {
                       <div className={`text-sm ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>{i.topic}</div>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
                         <Badge variant="outline" className="border-border/60 text-[10px]">{i.subjectShort}</Badge>
+                        <span
+                          className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium uppercase ${
+                            i.priority === "High"
+                              ? "bg-success/15 text-success"
+                              : i.priority === "Low"
+                                ? "bg-muted text-muted-foreground"
+                                : "bg-gold/15 text-gold"
+                          }`}
+                        >
+                          {i.priority}
+                        </span>
                         <span>{i.subject}</span>
                       </div>
                     </div>
