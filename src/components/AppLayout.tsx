@@ -18,7 +18,7 @@ const navItems = [
   { to: "/", label: "Home", end: true },
   { to: "/topics", label: "Topics" },
   { to: "/progress", label: "Progress" },
-  { to: "/checklist", label: "Checklist" },
+  { to: "/checklist", label: "Weekly" },
 ];
 
 export default function AppLayout() {
