@@ -88,7 +88,7 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
         </div>
 
         <div className="overflow-x-auto">
-          <div className="flex items-start gap-3 min-w-max pb-2">
+          <div className="flex items-start justify-between gap-2 pb-2 md:gap-3">
             {MONTHS.map((mo) => {
               const daysInMonth = new Date(mo.y, mo.m + 1, 0).getDate();
               const startPad = new Date(mo.y, mo.m, 1).getDay(); // Sun=0
@@ -112,11 +112,11 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
 
               return (
                 <div key={mo.label} className="flex flex-col items-center">
-                  <div className="flex gap-[3px]">
+                  <div className="flex gap-[4px]">
                     {cols.map((col, ci) => (
-                      <div key={ci} className="flex flex-col gap-[3px]">
+                      <div key={ci} className="flex flex-col gap-[4px]">
                         {col.map((c, ri) => {
-                          if (!c) return <div key={ri} className="h-[11px] w-[11px]" />;
+                          if (!c) return <div key={ri} className="h-[15px] w-[15px] md:h-[17px] md:w-[17px]" />;
                           let cls = "bg-muted/40";
                           if (!c.inWindow) cls = "bg-muted/20";
                           else if (c.count >= 5) cls = "bg-success";
@@ -127,7 +127,7 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
                             <div
                               key={ri}
                               title={`${c.ds}: ${c.count} topic${c.count === 1 ? "" : "s"}`}
-                              className={`h-[11px] w-[11px] rounded-[2px] ${cls} ${c.isToday ? "ring-1 ring-gold" : ""}`}
+                              className={`h-[15px] w-[15px] md:h-[17px] md:w-[17px] rounded-[3px] ${cls} ${c.isToday ? "ring-1 ring-gold" : ""}`}
                             />
                           );
                         })}
@@ -145,11 +145,11 @@ export default function MonthlyStreaks({ refreshKey = 0 }: { refreshKey?: number
 
         <div className="mt-4 flex items-center justify-end gap-2 text-[11px] text-muted-foreground">
           <span>Less</span>
-          <div className="h-[11px] w-[11px] rounded-[2px] bg-muted/40" />
-          <div className="h-[11px] w-[11px] rounded-[2px] bg-success/25" />
-          <div className="h-[11px] w-[11px] rounded-[2px] bg-success/50" />
-          <div className="h-[11px] w-[11px] rounded-[2px] bg-success/70" />
-          <div className="h-[11px] w-[11px] rounded-[2px] bg-success" />
+          <div className="h-[13px] w-[13px] rounded-[3px] bg-muted/40" />
+          <div className="h-[13px] w-[13px] rounded-[3px] bg-success/25" />
+          <div className="h-[13px] w-[13px] rounded-[3px] bg-success/50" />
+          <div className="h-[13px] w-[13px] rounded-[3px] bg-success/70" />
+          <div className="h-[13px] w-[13px] rounded-[3px] bg-success" />
           <span>More</span>
         </div>
       </Card>
