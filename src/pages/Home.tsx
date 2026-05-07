@@ -29,7 +29,7 @@ export default function Home() {
         />
         <div className="container relative mx-auto px-6 py-20 md:py-28">
           <Badge className="mb-6 border-gold/40 bg-gold/15 text-gold hover:bg-gold/20">
-            <Trophy className="mr-1.5 h-3.5 w-3.5" /> Target: AIR &lt; 1000 · GATE CS 2027
+            <Trophy className="mr-1.5 h-3.5 w-3.5" /> Target: AIR &lt; 500 · GATE CS 2027
           </Badge>
           <h1 className="font-display text-4xl font-semibold leading-[1.05] tracking-tight md:text-6xl lg:text-7xl">
             Smart Prep, Not <span className="italic text-gold">Hard</span> Prep.
