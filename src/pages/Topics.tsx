@@ -1,14 +1,90 @@
 import { subjects, monthlyPlan, resources } from "@/data/gateData";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Target, Calendar, BookOpen, CheckCircle2, AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Target, Calendar, BookOpen, CheckCircle2, AlertCircle, TrendingUp } from "lucide-react";
 import SectionHead from "@/components/SectionHead";
 
 const sortedSubjects = [...subjects].sort((a, b) => b.avgMarks - a.avgMarks);
+const totalMarks = sortedSubjects.reduce((s, x) => s + x.avgMarks, 0);
+
+const diffColor = (d: string) =>
+  d === "Easy"
+    ? "bg-success/15 text-success border-success/30"
+    : d === "Moderate"
+      ? "bg-accent/15 text-accent border-accent/30"
+      : "bg-danger/15 text-danger border-danger/30";
 
 export default function Topics() {
   return (
     <main className="container mx-auto px-6 py-16 md:py-24">
+      <section id="weightage" className="mb-24">
+        <SectionHead
+          icon={<TrendingUp className="h-5 w-5" />}
+          eyebrow="15-Year Analysis (2010–2024)"
+          title="Subject Weightage — High to Low"
+          desc="Average marks expected per subject based on past 15 GATE CS papers. Sorted by weightage."
+        />
+
+        <Card className="overflow-hidden border-border/60 shadow-elegant">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-primary text-primary-foreground">
+                <tr>
+                  <th className="px-4 py-4 text-left font-medium">#</th>
+                  <th className="px-4 py-4 text-left font-medium">Subject</th>
+                  <th className="px-4 py-4 text-left font-medium">Avg Marks</th>
+                  <th className="px-4 py-4 text-left font-medium">Range (15 yrs)</th>
+                  <th className="px-4 py-4 text-left font-medium">Weightage</th>
+                  <th className="px-4 py-4 text-left font-medium">Difficulty</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedSubjects.map((s, i) => (
+                  <tr key={s.name} className="border-t border-border/60 transition-colors hover:bg-muted/40">
+                    <td className="px-4 py-4 font-display text-lg text-muted-foreground">
+                      {String(i + 1).padStart(2, "0")}
+                    </td>
+                    <td className="px-4 py-4 font-medium text-foreground">{s.name}</td>
+                    <td className="px-4 py-4">
+                      <span className="font-display text-2xl font-semibold text-secondary">{s.avgMarks}</span>
+                      <span className="ml-1 text-xs text-muted-foreground">marks</span>
+                    </td>
+                    <td className="px-4 py-4 text-muted-foreground">{s.range}</td>
+                    <td className="px-4 py-4 w-[200px]">
+                      <div className="flex items-center gap-3">
+                        <Progress value={(s.avgMarks / 15) * 100} className="h-2" />
+                        <span className="text-xs font-medium text-muted-foreground tabular-nums">
+                          {s.weightagePct}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${diffColor(s.difficulty)}`}>
+                        {s.difficulty}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                <tr className="border-t-2 border-primary bg-muted/60 font-semibold">
+                  <td className="px-4 py-4" />
+                  <td className="px-4 py-4">Total</td>
+                  <td className="px-4 py-4 font-display text-2xl text-primary">{totalMarks}</td>
+                  <td className="px-4 py-4 text-muted-foreground">100</td>
+                  <td className="px-4 py-4 text-muted-foreground">100%</td>
+                  <td />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </Card>
+
+        <p className="mt-4 text-sm text-muted-foreground">
+          <AlertCircle className="mr-1 inline h-4 w-4" />
+          Weightage may shift ±2 marks per subject. General Aptitude is fixed at 15 marks every year.
+        </p>
+      </section>
+
       <section id="topics" className="mb-24">
         <SectionHead
           icon={<Target className="h-5 w-5" />}
