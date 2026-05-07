@@ -2,9 +2,6 @@ import { Badge } from "@/components/ui/badge";
 import { Trophy } from "lucide-react";
 import MonthlyStreaks from "@/components/MonthlyStreaks";
 
-const TARGET = new Date("2027-02-01T00:00:00");
-const daysToGate = Math.max(0, Math.ceil((TARGET.getTime() - Date.now()) / 86400000));
-
 export default function Home() {
   return (
     <>
