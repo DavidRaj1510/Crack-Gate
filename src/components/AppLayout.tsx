@@ -2,7 +2,15 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import Countdown from "@/components/Countdown";
 import { cn } from "@/lib/utils";
 
@@ -25,8 +33,8 @@ export default function AppLayout() {
     <div className="min-h-screen bg-background font-sans text-foreground">
       <Countdown />
       <div className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-3 px-6 py-3">
-          <nav className="flex flex-wrap items-center gap-1">
+        <div className="container relative mx-auto flex items-center justify-center px-6 py-3">
+          <nav className="flex flex-wrap items-center justify-center gap-1">
             {navItems.map((item) => (
               <NavLink
                 key={item.to}
@@ -45,11 +53,23 @@ export default function AppLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <span className="hidden truncate sm:inline">Signed in as {user.email}</span>
-            <Button size="sm" variant="ghost" onClick={() => signOut()}>
-              <LogOut className="mr-1 h-3.5 w-3.5" /> Sign out
-            </Button>
+          <div className="absolute right-4 top-1/2 -translate-y-1/2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-full" aria-label="Account">
+                  <User className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="truncate text-xs font-normal text-muted-foreground">
+                  {user.email}
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()}>
+                  <LogOut className="mr-2 h-4 w-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
