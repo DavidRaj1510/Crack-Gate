@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { subjects, monthlyPlan } from "@/data/gateData";
+import { subjects } from "@/data/gateData";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
