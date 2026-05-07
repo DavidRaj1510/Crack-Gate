@@ -1,137 +1,170 @@
-import { useEffect, useMemo, useState } from "react";
-import { subjects } from "@/data/gateData";
+import { useMemo, useState } from "react";
+import { subjects, monthlyPlan } from "@/data/gateData";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { ListTodo, RefreshCw } from "lucide-react";
+import { ListTodo, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCloudData } from "@/hooks/useCloudData";
 
-const WEEK_KEY = "gate2027-weekly-v1";
-const TARGET = 10;
-
 const topicId = (subject: string, topic: string) => `${subject}::${topic}`;
+const PER_WEEK = 14; // 2 topics × 7 days
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function getMonday(d = new Date()) {
-  const date = new Date(d);
-  const day = date.getDay();
+// Plan starts Monday May 4, 2026 (start of Phase 1)
+const PLAN_START = new Date("2026-05-04T00:00:00");
+const PLAN_END = new Date("2027-01-25T00:00:00"); // last week before GATE
+
+function mondayOf(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  const day = x.getDay();
   const diff = (day === 0 ? -6 : 1) - day;
-  date.setDate(date.getDate() + diff);
-  return date.toISOString().slice(0, 10);
+  x.setDate(x.getDate() + diff);
+  return x;
 }
 
-type StoredWeek = { weekStart: string; topicIds: string[] };
+function fmt(d: Date) {
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+// Build the master topic stream, ordered by phase (subjectShorts) so each
+// phase's subjects are covered in their target months.
+function buildPlan() {
+  const subjBy = new Map(subjects.map((s) => [s.short, s]));
+  const stream: { id: string; subject: string; subjectShort: string; topic: string; phase: string }[] = [];
+  const used = new Set<string>();
+
+  const pushSubject = (short: string, phase: string) => {
+    const s = subjBy.get(short);
+    if (!s) return;
+    [...s.highTopics, ...s.lowTopics].forEach((t) => {
+      const id = topicId(s.name, t);
+      if (used.has(id)) return;
+      used.add(id);
+      stream.push({ id, subject: s.name, subjectShort: s.short, topic: t, phase });
+    });
+  };
+
+  monthlyPlan.forEach((p) => {
+    (p.subjectShorts ?? []).forEach((sh) => pushSubject(sh, p.phase));
+  });
+  // Catch any subject not in any phase (e.g. Discrete)
+  subjects.forEach((s) => pushSubject(s.short, "Phase 1 — Foundation"));
+
+  // Chunk into weeks
+  const totalWeeks = Math.max(
+    1,
+    Math.ceil((PLAN_END.getTime() - PLAN_START.getTime()) / (7 * 86400000)) + 1,
+  );
+  const weeks: typeof stream[] = [];
+  for (let w = 0; w < totalWeeks; w++) {
+    const start = w * PER_WEEK;
+    const slice = stream.slice(start, start + PER_WEEK);
+    if (slice.length === 0) {
+      // Revision weeks: cycle through high-priority topics
+      const high = subjects.flatMap((s) => s.highTopics.map((t) => ({
+        id: topicId(s.name, t), subject: s.name, subjectShort: s.short, topic: `Revise: ${t}`, phase: "Revision",
+      })));
+      const offset = ((w * PER_WEEK) - stream.length) % high.length;
+      weeks.push([...high.slice(offset, offset + PER_WEEK), ...high.slice(0, Math.max(0, PER_WEEK - (high.length - offset)))].slice(0, PER_WEEK));
+    } else {
+      weeks.push(slice);
+    }
+  }
+  return weeks;
+}
 
 export default function WeeklyChecklist() {
   const { progress: done, toggleTopic } = useCloudData();
-  const [weekly, setWeekly] = useState<StoredWeek | null>(null);
-  const weekStart = getMonday();
+  const weeks = useMemo(buildPlan, []);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(WEEK_KEY);
-      if (raw) {
-        const parsed: StoredWeek = JSON.parse(raw);
-        if (parsed.weekStart === weekStart) {
-          setWeekly(parsed);
-          return;
-        }
-      }
-    } catch {}
-    generate(true);
-  }, []);
+  const currentIndex = useMemo(() => {
+    const today = mondayOf(new Date());
+    const start = mondayOf(PLAN_START);
+    const idx = Math.round((today.getTime() - start.getTime()) / (7 * 86400000));
+    return Math.max(0, Math.min(weeks.length - 1, idx));
+  }, [weeks.length]);
 
-  const allHighUnfinished = useMemo(() => {
-    const arr: { id: string; subject: string; subjectShort: string; topic: string; avgMarks: number }[] = [];
-    subjects.forEach((s) => {
-      s.highTopics.forEach((t) => {
-        const id = topicId(s.name, t);
-        if (!done[id]) arr.push({ id, subject: s.name, subjectShort: s.short, topic: t, avgMarks: s.avgMarks });
-      });
-    });
-    // Sort by subject avg marks (highest weight first)
-    arr.sort((a, b) => b.avgMarks - a.avgMarks);
-    return arr;
-  }, [done]);
+  const [weekIdx, setWeekIdx] = useState(currentIndex);
+  const items = weeks[weekIdx] ?? [];
 
-  const generate = (_silent = false) => {
-    // Pick top TARGET unfinished high-priority topics, prefer subject diversity
-    const seen = new Map<string, number>();
-    const picked: string[] = [];
-    for (const t of allHighUnfinished) {
-      const c = seen.get(t.subject) ?? 0;
-      if (c < 2) {
-        picked.push(t.id);
-        seen.set(t.subject, c + 1);
-      }
-      if (picked.length >= TARGET) break;
-    }
-    // Fill remaining if needed
-    if (picked.length < TARGET) {
-      for (const t of allHighUnfinished) {
-        if (!picked.includes(t.id)) picked.push(t.id);
-        if (picked.length >= TARGET) break;
-      }
-    }
-    const w = { weekStart, topicIds: picked };
-    setWeekly(w);
-    localStorage.setItem(WEEK_KEY, JSON.stringify(w));
-  };
-
-  const toggle = (id: string) => { void toggleTopic(id); };
-
-  const items = (weekly?.topicIds ?? []).map((id) => {
-    const [subjectName, topic] = id.split("::");
-    const s = subjects.find((x) => x.name === subjectName);
-    return { id, subject: subjectName, subjectShort: s?.short ?? "", topic, avgMarks: s?.avgMarks ?? 0 };
-  });
+  const weekStartDate = useMemo(() => {
+    const d = new Date(PLAN_START);
+    d.setDate(d.getDate() + weekIdx * 7);
+    return d;
+  }, [weekIdx]);
+  const weekEndDate = useMemo(() => {
+    const d = new Date(weekStartDate);
+    d.setDate(d.getDate() + 6);
+    return d;
+  }, [weekStartDate]);
 
   const completed = items.filter((i) => done[i.id]).length;
   const pct = items.length ? Math.round((completed / items.length) * 100) : 0;
+
+  // Split into 7 days × ~2 topics
+  const byDay: typeof items[] = Array.from({ length: 7 }, () => []);
+  items.forEach((it, i) => byDay[i % 7].push(it));
 
   return (
     <Card className="border-border/60 bg-gradient-card p-6 shadow-elegant">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ListTodo className="h-5 w-5 text-accent" />
-          <h3 className="font-display text-xl font-semibold text-primary">This Week's Checklist</h3>
+          <h3 className="font-display text-xl font-semibold text-primary">Weekly Checklist</h3>
         </div>
-        <Button size="sm" variant="outline" onClick={() => generate()}>
-          <RefreshCw className="mr-1 h-4 w-4" /> Regenerate
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="icon" variant="outline" className="h-8 w-8" disabled={weekIdx === 0} onClick={() => setWeekIdx((i) => Math.max(0, i - 1))}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Badge variant="outline" className="border-border/60 text-xs">
+            Week {weekIdx + 1} / {weeks.length}
+          </Badge>
+          <Button size="icon" variant="outline" className="h-8 w-8" disabled={weekIdx >= weeks.length - 1} onClick={() => setWeekIdx((i) => Math.min(weeks.length - 1, i + 1))}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <div className="mb-4 text-xs text-muted-foreground">
-        Week of {weekStart} · Top {TARGET} highest-priority unfinished topics across all subjects
+        {fmt(weekStartDate)} – {fmt(weekEndDate)} · 1–2 topics per day · auto-updates each week
       </div>
 
-      <div className="mb-4 flex items-center gap-3">
+      <div className="mb-5 flex items-center gap-3">
         <Progress value={pct} className="h-2 flex-1" />
         <span className="text-sm font-medium text-secondary tabular-nums">{completed}/{items.length}</span>
       </div>
 
-      <ul className="space-y-2">
-        {items.map((i) => {
-          const checked = !!done[i.id];
-          return (
-            <li key={i.id} className="flex items-start gap-3 rounded-md border border-border/40 p-3">
-              <Checkbox checked={checked} onCheckedChange={() => toggle(i.id)} className="mt-0.5" />
-              <div className="flex-1">
-                <div className={`text-sm ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>{i.topic}</div>
-                <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="outline" className="border-border/60 text-[10px]">{i.subjectShort}</Badge>
-                  <span>{i.subject} · {i.avgMarks} avg marks</span>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-        {items.length === 0 && (
-          <li className="rounded-md border border-success/30 bg-success/5 p-4 text-sm text-success">
-            🎉 All high-priority topics complete! Move to revision and mocks.
-          </li>
-        )}
-      </ul>
+      <div className="space-y-3">
+        {byDay.map((dayItems, di) => (
+          <div key={di} className="rounded-md border border-border/40 p-3">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {DAYS[di]}
+            </div>
+            <ul className="space-y-2">
+              {dayItems.map((i) => {
+                const checked = !!done[i.id];
+                return (
+                  <li key={i.id} className="flex items-start gap-3">
+                    <Checkbox checked={checked} onCheckedChange={() => toggleTopic(i.id)} className="mt-0.5" />
+                    <div className="flex-1">
+                      <div className={`text-sm ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}>{i.topic}</div>
+                      <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                        <Badge variant="outline" className="border-border/60 text-[10px]">{i.subjectShort}</Badge>
+                        <span>{i.subject}</span>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+              {dayItems.length === 0 && (
+                <li className="text-xs italic text-muted-foreground">Rest / catch-up</li>
+              )}
+            </ul>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 }

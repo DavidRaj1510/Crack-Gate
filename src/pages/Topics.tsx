@@ -89,7 +89,7 @@ export default function Topics() {
         <SectionHead
           icon={<Target className="h-5 w-5" />}
           eyebrow="Topic-level Priority"
-          title="What to Study, What to Skim"
+          title="What to Study, What to Skip"
           desc="High-weightage topics first. Low-weightage topics still covered — never skipped, just deprioritized."
         />
 
